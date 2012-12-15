@@ -91,11 +91,29 @@ EXPORT struct Module::module_type module = {
 // commands
 /////////////
 
+// !dongs cmd
+static void
+dongs_cmd (NetServer *s)
+{
+  dongs_type *dongs = server2dongs (s);
+  if (dongs == NULL)
+    {
+      SEND_TEXT (DEST, "This command is not available.");
+      return;
+    }
+  strsplit (CMD[3], BUF, 2);
+  if (BUF[1][0] == 0)
+    {
+      SEND_TEXT (DEST, "%s", HELP_DONGS);
+      return;
+    }
+    
+  SEND_TEXT (DEST, "lol dongs %s", BUF[1]);
+}
+
 /////////////////////
 // events
 ////////////////////
-
-
 
 //dongs event
 void
@@ -117,27 +135,6 @@ dongs_event (NetServer *s)
     
     //SEND_TEXT (DEST, "%s", oss.str().c_str());
 }
-
-// !dongs cmd
-static void
-dongs_cmd (NetServer *s)
-{
-  dongs_type *dongs = server2dongs (s);
-  if (dongs == NULL)
-    {
-      SEND_TEXT (DEST, "This command is not available.");
-      return;
-    }
-  strsplit (CMD[3], BUF, 2);
-  if (BUF[1][0] == 0)
-    {
-      SEND_TEXT (DEST, "%s", HELP_DONGS);
-      return;
-    }
-    
-  SEND_TEXT (DEST, "lol dongs %s", BUF[1]);
-}
-
 
 ////////////////////
 // module managing
