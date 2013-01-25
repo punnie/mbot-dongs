@@ -26,6 +26,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #define MAX_URL_LENGTH 1024
 #define MAX_URL_DETECT 3
+
 struct sniffing_channel_type {
   String* channel;
   bool tellall; // sniff all links or just text/html
@@ -49,6 +50,10 @@ struct urlsniffer_type {
   bool telling_all_on_channel(c_char channel);
   urlsniffer_type (NetServer *server) : 
     s (server) {}
+  
+  ~urlsniffer_type () {
+    delete channels;
+  }
 };
 
 List * urlsniffer_list;
@@ -291,15 +296,15 @@ urlsniffer_conf (NetServer *s, c_char bufread)
   if (strcasecmp (buf[0], "urlsniffer") != 0)
     return;
   
-  //varifvarificar se ja inicializado!
+  //verificar se ja foi inicializado!
   urlsniffer_type *urlsniffer = server2urlsniffer(s);
   if (urlsniffer == NULL) {
     urlsniffer = new urlsniffer_type (s);
     if (urlsniffer == NULL)
       s->b->conf_error ("error initializing urlsniffer");
-	urlsniffer_list->add ((void *)urlsniffer);
-	urlsniffer->channels = new List();
-	s->script.events.add ((void *)urlsniffer_event);
+	  urlsniffer_list->add ((void *)urlsniffer);
+	  urlsniffer->channels = new List();
+	  s->script.events.add ((void *)urlsniffer_event);
   }
   
   urlsniffer->channels->add ((void *) new sniffing_channel_type(
@@ -313,15 +318,19 @@ urlsniffer_conf (NetServer *s, c_char bufread)
 static void
 urlsniffer_stop (void)
 {
+  sniffing_channel_type *channel;
   urlsniffer_type *urlsniffer;
   urlsniffer_list->rewind ();
-  while ((urlsniffer = (urlsniffer_type *)urlsniffer_list->next ()) != NULL)
-    {
-      delete urlsniffer->channels;
-      
-      urlsniffer->s->script.events.del ((void *)urlsniffer_event);
-      delete urlsniffer;
+  while ((urlsniffer = (urlsniffer_type *)urlsniffer_list->next ()) != NULL) {  
+    urlsniffer->s->script.events.del ((void *)urlsniffer_event);
+    
+    urlsniffer->channels->rewind();
+    while ((channel = (sniffing_channel_type*)urlsniffer->channels->next ()) != NULL) {
+      delete channel;
     }
+  
+    delete urlsniffer;
+  }
   delete urlsniffer_list;
 }
 
