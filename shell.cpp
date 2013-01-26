@@ -89,6 +89,7 @@ List * shell_list;
 
 #include <string>
 #include <sstream>
+#include <algorithm>
 using namespace std;
 
 ///////////////
@@ -130,6 +131,17 @@ EXPORT struct Module::module_type module = {
 // commands
 /////////////
 
+bool is_invalid_char(char c) {
+  char list[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  int len = sizeof(list)/sizeof(list[1]);
+  
+  for (int i = 0; i < len; i++) {
+    if (list[i] == c)
+      return true;
+  }
+  return false;
+}
+
 // http://stackoverflow.com/questions/3418231/c-replace-part-of-a-string-with-another-string
 
 bool replace(std::string& str, const std::string& from, const std::string& to) {
@@ -147,6 +159,9 @@ void parse_command(char* buffer, command_type* command, char* params) {
     command_s(command->command->getstr()), 
     temp;
   stringstream ss(params_s);
+  
+  //Remove almost everything from PARAMS
+  params_s.erase(remove_if(params_s.begin(), params_s.end(), is_invalid_char), params_s.end());
   
   int n = 1;
   while (ss >> temp) {
@@ -234,7 +249,6 @@ shell_cmd (NetServer *s)
         break;
       }
 
-      
       SEND_TEXT(DEST, "%s", buffer);
       lines_sent++;
     
