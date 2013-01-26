@@ -166,8 +166,7 @@ bool parse_command(char* buffer, command_type* command, char* params) {
   // the line below is quite important
   params_s.erase(remove_if(params_s.begin(), params_s.end(), is_invalid_char), params_s.end());
   // the line above is quite important
-  
-  cout << ":o " << params_s <<endl;    
+
   replace(command_s, "{}", params_s);
 
   strncpy(buffer, command_s.c_str(), COMMAND_SIZE);
@@ -217,7 +216,7 @@ shell_cmd (NetServer *s)
     }
     
     //debug
-    cout << "Command: " << cmdline << endl;
+    //cout << "Command: " << cmdline << endl;
         
     int lines_sent = 0;
     char buffer[RESULT_LINE_SIZE];

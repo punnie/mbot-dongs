@@ -1,27 +1,40 @@
 import pylast 
 import sys
 import code
+import re
 
 def usage():
   print(LEL + " Usage: ")
-  print("!lastfm userinfo|topartists|topalbums|weeklyartists|weeklyalbums <username>")
   print("!lastfm compare <username1> <username2>")
+  print("!lastfm artistinfo|artistevents <artist name>")
+  print("!lastfm userinfo|topartists|topalbums|weeklyartists|weeklyalbums <username>")
   exit(-1);
 
 
 LEL = "0,5last.fm"
+NUM_EVENTS = 5
+
 if len(sys.argv) < 3:
   usage();
   
 chart_length = 10
 query = sys.argv[1]
+
 user = sys.argv[2]
   
-if query == "compare" and len(sys.argv) < 4:
-  usage();
+if query == "compare":
+  if len(sys.argv) < 4:
+    usage();
+  else:
+    user2 = sys.argv[3]
+
   
-else:
-  user2 = sys.argv[3]
+if query == "artistinfo" or query == "artistevents":
+  if len(sys.argv) < 3:
+    usage();
+  else:
+    artist = " ".join(sys.argv[2:])
+  
   
 (api_key, api_secret) = \
   ("fce0a7524bf2174e465cc2164029bf1f", "5ae9f52609c10a67d8b628f17fd69adc")
@@ -129,6 +142,66 @@ class LastFM:
     chart_text = ", ".join(parsed_list);
     print LEL + " Comparison between %s and %s: Similarity Index: %.2f - Common Artists: %s" % (user, user2, comparison_index, chart_text)
 
+  def get_artist_info(self):
+    try:
+      artist_info = self.api.get_artist(artist)
+
+      bio = artist_info.get_bio_summary()
+      if bio != None:
+        bio = re.sub('<[^<]+?>', '', bio)
+      
+      name = artist_info.get_name()
+      listener_count = artist_info.get_listener_count()
+      
+      
+      tags = artist_info.get_top_tags()
+      tag_text = ""
+      if tags != []:
+        tag_text = ", ".join([tag.item.__str__() for tag in tags[:10]])
+        tag_text = "Tags: %s." % tag_text
+
+      similars = artist_info.get_similar()
+      similars_text = ", ".join([similar.item.__str__() for similar in similars[:10]])
+
+      print LEL + " %s (%d listeners). %s" % (name, listener_count, tag_text)
+      print "Similar Artists: %s" % (similars_text)
+      
+      if bio != None:
+        print bio
+    
+    except pylast.WSError as e:
+      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      exit(-1)
+
+  def get_artist_events(self):
+    try:
+      artist_info = self.api.get_artist(artist)
+      artist_events = artist_info.get_upcoming_events()
+
+      
+      #list comprehensiion wont do cause EXCEPTIONS
+      events_str = ""
+      n = 0
+      for event in artist_events:
+        try:
+          e_date = event.get_start_date()
+          e_name = event.get_title()
+          e_url = event.get_url()
+          
+          events_str += "%s: %s - %s\n" %(e_date[:-9], e_name, e_url)
+          n = n + 1
+          
+          if n >= NUM_EVENTS:
+            break
+        except pylast.WSError:
+          pass
+
+      print events_str
+
+    except pylast.WSError as e:
+      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      exit(-1)
+  
 lastfm = LastFM()
 
 if query == "weeklyartists":
@@ -143,6 +216,10 @@ elif query == "userinfo":
   LastFM().get_user_info()
 elif query == "compare":
   LastFM().compare_users()
+elif query == "artistinfo":
+  LastFM().get_artist_info()
+elif query == "artistevents":
+  LastFM().get_artist_events()  
   
 else:
   usage();
