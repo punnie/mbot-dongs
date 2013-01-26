@@ -4,7 +4,7 @@ import code
 
 LEL = "0,4last.fm"
 if len(sys.argv) < 2:
-  print "Provide username."
+  print(LEL + "Usage: !lastfm <username>")
   exit(-1);
   
 chart_length = 10
