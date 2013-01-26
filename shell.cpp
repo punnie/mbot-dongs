@@ -47,14 +47,12 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define TAB_CHAR "  "
 struct command_type {
   String* trigger;  // trigger
-  int cmd_len;      // number of arguments required
   int user_level;    // level required to run command
   int respond_with;  // response type, should change to an enum type TODO
   String* command;  // shell command
   
-  command_type(String* t, int cl, int ul, int rw, String* c) : 
+  command_type(String* t, int ul, int rw, String* c) : 
     trigger (t),
-    cmd_len (cl), 
     user_level (ul),
     respond_with (rw),
     command (c) {}
@@ -136,14 +134,14 @@ EXPORT struct Module::module_type module = {
 /////////////
 
 bool is_invalid_char(char c) {
-  char list[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  char list[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _.";
   int len = sizeof(list)/sizeof(list[1]);
   
   for (int i = 0; i < len; i++) {
     if (list[i] == c)
-      return true;
+      return false;
   }
-  return false;
+  return true;
 }
 
 // http://stackoverflow.com/questions/3418231/c-replace-part-of-a-string-with-another-string
@@ -161,28 +159,19 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
 //an error message
 bool parse_command(char* buffer, command_type* command, char* params) {
 
-  string params_s(params), 
-    command_s(command->command->getstr()), 
-    temp;
-  stringstream ss(params_s);
-  
+  string params_s(params), command_s(command->command->getstr());
+
   //Remove almost everything from PARAMS
+  
+  // the line below is quite important
   params_s.erase(remove_if(params_s.begin(), params_s.end(), is_invalid_char), params_s.end());
+  // the line above is quite important
   
-  int n = 0;
-  while (ss >> temp) {
-    stringstream temp_ss("");
-    temp_ss << "{" << ++n << "}";
-    replace(command_s, temp_ss.str(), temp);
-  }
-  
-  if (n < command->cmd_len) {
-    snprintf(buffer, COMMAND_SIZE, "Command takes %d arguments.", command->cmd_len);
-    return false;
-  
-  }
-  
+  cout << ":o " << params_s <<endl;    
+  replace(command_s, "{}", params_s);
+
   strncpy(buffer, command_s.c_str(), COMMAND_SIZE);
+  
   return true;
 }
 
@@ -310,8 +299,8 @@ static void
 shell_conf (NetServer *s, c_char bufread)
 {
 
-  char buf[6][MSG_SIZE+1];
-  strsplit (bufread, buf, 5);
+  char buf[5][MSG_SIZE+1];
+  strsplit (bufread, buf, 4);
  
   if (strcasecmp (buf[0], "shell") != 0)
     return;
@@ -329,25 +318,23 @@ shell_conf (NetServer *s, c_char bufread)
 
 
   // Create a new command_type instance
-  // 0     1        2               3          4           5
-  // SHELL !trigger <num of params> <response> <userlevel> <shell command>
+  // 0     1        2          3           4
+  // SHELL !trigger <response> <userlevel> <shell command>
   String *n_trigger = new String(buf[1], TRIGGER_SIZE);
-  int n_cmdlength = atoi(buf[2]);
-  int n_cmdlevel = atoi(buf[4]);
-  int n_msgtype = atoi(buf[3]);
-  String *n_command = new String(buf[5], COMMAND_SIZE);
+  int n_cmdlevel = atoi(buf[3]);
+  int n_msgtype = atoi(buf[2]);
+  String *n_command = new String(buf[4], COMMAND_SIZE);
 
   shell->commands->add(
     (void*) new command_type(
        n_trigger,
-       n_cmdlength,
        n_cmdlevel,
        n_msgtype,
        n_command
     )
   );
 
-  cout << "  " << buf[1] << " is bound to \"" << buf[5] << "\" with acc lvl " << n_cmdlevel <<  endl;
+  cout << "  " << buf[1] << " is bound to \"" << buf[4] << "\" with acc lvl " << n_cmdlevel <<  endl;
   s->script.cmd_bind (shell_cmd, n_cmdlevel, buf[1], module.mod, HELP_shell);
 }
 
