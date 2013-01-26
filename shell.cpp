@@ -43,14 +43,18 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define RESPONSE_USERNOT 2
 #define RESPONSE_CHANNOT 3
 
+//The characters you want tabs replaced with.
+#define TAB_CHAR "  "
 struct command_type {
   String* trigger;  // trigger
+  int cmd_len;      // number of arguments required
   int user_level;    // level required to run command
   int respond_with;  // response type, should change to an enum type TODO
   String* command;  // shell command
   
-  command_type(String* t, int ul, int rw, String* c) : 
-    trigger (t), 
+  command_type(String* t, int cl, int ul, int rw, String* c) : 
+    trigger (t),
+    cmd_len (cl), 
     user_level (ul),
     respond_with (rw),
     command (c) {}
@@ -153,7 +157,9 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
 }
 
 //builds the shell command based on user input
-void parse_command(char* buffer, command_type* command, char* params) {
+//if the return value is false, buffer contains
+//an error message
+bool parse_command(char* buffer, command_type* command, char* params) {
 
   string params_s(params), 
     command_s(command->command->getstr()), 
@@ -163,26 +169,21 @@ void parse_command(char* buffer, command_type* command, char* params) {
   //Remove almost everything from PARAMS
   params_s.erase(remove_if(params_s.begin(), params_s.end(), is_invalid_char), params_s.end());
   
-  int n = 1;
+  int n = 0;
   while (ss >> temp) {
     stringstream temp_ss("");
-    temp_ss << "{" << n++ << "}";
-     
-    //cout << "a: " << temp << endl;
-    //cout << "b: " << temp_ss.str() << endl;
-    //cout << "c: " << command_s << endl;
+    temp_ss << "{" << ++n << "}";
     replace(command_s, temp_ss.str(), temp);
-    //cout << "d: " << command_s << endl;
+  }
+  
+  if (n < command->cmd_len) {
+    snprintf(buffer, COMMAND_SIZE, "Command takes %d arguments.", command->cmd_len);
+    return false;
+  
   }
   
   strncpy(buffer, command_s.c_str(), COMMAND_SIZE);
-  
-
-
-  //deprecated
-  //cout << "a: "<< command->trigger->getstr() << endl;
-  //sprintf(buffer, command->command->getstr(), "~", "l");
-  //cout << "b: \""<< params << "\"" << endl;
+  return true;
 }
 
 //returns the command for a given trigger
@@ -222,7 +223,9 @@ shell_cmd (NetServer *s)
   
     
     char cmdline[COMMAND_SIZE];
-    parse_command(cmdline, command, BUF[1]);
+    if (!parse_command(cmdline, command, BUF[1])) {
+      SEND_TEXT(DEST, cmdline);
+    }
     
     //debug
     cout << "Command: " << cmdline << endl;
@@ -248,8 +251,12 @@ shell_cmd (NetServer *s)
         SEND_TEXT(DEST, "command output stopped at %d lines.", RESULT_LINE_MAX);
         break;
       }
+      
+      string temp(buffer);
+      while (temp.find("\t") != string::npos)
+        replace(temp, "\t", TAB_CHAR);
 
-      SEND_TEXT(DEST, "%s", buffer);
+      SEND_TEXT(DEST, "%s", temp.c_str());
       lines_sent++;
     
     }
@@ -303,35 +310,45 @@ static void
 shell_conf (NetServer *s, c_char bufread)
 {
 
-  char buf[5][MSG_SIZE+1];
-  strsplit (bufread, buf, 4);
+  char buf[6][MSG_SIZE+1];
+  strsplit (bufread, buf, 5);
  
   if (strcasecmp (buf[0], "shell") != 0)
     return;
 
-  cout << buf[4] << endl;
   shell_type *shell = server2shell(s);
   if (shell == NULL) {
     shell = new shell_type (s);
     
     if (shell == NULL)
       s->b->conf_error ("error initializing shell");
-      
+
     shell_list->add ((void *)shell);
-  }
-  
     
-  int cmdlevel = atoi(buf[2]);
-  shell->commands->add((void*) new command_type(
-    new String(buf[1], TRIGGER_SIZE),
-     cmdlevel,
-     atoi(buf[3]),
-     new String(buf[4], COMMAND_SIZE)
-  ));
-  //s->script.events.add ((void *)shell_event);
-  
-  cout << " * binding " << buf[1] << " to " << buf[4] << endl;
-  s->script.cmd_bind (shell_cmd, cmdlevel, buf[1], module.mod, HELP_shell);
+  }
+
+
+  // Create a new command_type instance
+  // 0     1        2               3          4           5
+  // SHELL !trigger <num of params> <response> <userlevel> <shell command>
+  String *n_trigger = new String(buf[1], TRIGGER_SIZE);
+  int n_cmdlength = atoi(buf[2]);
+  int n_cmdlevel = atoi(buf[4]);
+  int n_msgtype = atoi(buf[3]);
+  String *n_command = new String(buf[5], COMMAND_SIZE);
+
+  shell->commands->add(
+    (void*) new command_type(
+       n_trigger,
+       n_cmdlength,
+       n_cmdlevel,
+       n_msgtype,
+       n_command
+    )
+  );
+
+  cout << "  " << buf[1] << " is bound to \"" << buf[5] << "\" with acc lvl " << n_cmdlevel <<  endl;
+  s->script.cmd_bind (shell_cmd, n_cmdlevel, buf[1], module.mod, HELP_shell);
 }
 
 // module termination
