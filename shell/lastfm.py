@@ -3,7 +3,9 @@ import sys
 import code
 
 def usage():
-  print(LEL + " Usage: !lastfm <userinfo|topartists|topalbums|weeklyartists|weeklyalbums>  <username>")
+  print(LEL + " Usage: ")
+  print("!lastfm userinfo|topartists|topalbums|weeklyartists|weeklyalbums <username>")
+  print("!lastfm compare <username1> <username2>")
   exit(-1);
 
 
@@ -14,6 +16,12 @@ if len(sys.argv) < 3:
 chart_length = 10
 query = sys.argv[1]
 user = sys.argv[2]
+  
+if query == "compare" and len(sys.argv) < 4:
+  usage();
+  
+else:
+  user2 = sys.argv[3]
   
 (api_key, api_secret) = \
   ("fce0a7524bf2174e465cc2164029bf1f", "5ae9f52609c10a67d8b628f17fd69adc")
@@ -105,7 +113,21 @@ class LastFM:
     chart_text = ", ".join(parsed_list);
     print LEL + " Weekly Top %d albums for %s: %s" % (chart_length, user, chart_text)
   
-  
+  def compare_users(self):
+    try:
+      comparison = self.api.get_user(user).compare_with_user(user2)
+      
+    except pylast.WSError as e:
+      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      exit(-1)
+
+    comparison_index = round(float(comparison[0]),2)
+    artist_list = comparison[1]
+
+    parsed_list = [item.__str__() for item in artist_list]
+
+    chart_text = ", ".join(parsed_list);
+    print LEL + " Comparison between %s and %s: Similarity Index: %.2f - Common Artists: %s" % (user, user2, comparison_index, chart_text)
 
 lastfm = LastFM()
 
@@ -119,6 +141,9 @@ elif query == "topartists":
   LastFM().get_top_artists()
 elif query == "userinfo":
   LastFM().get_user_info()
+elif query == "compare":
+  LastFM().compare_users()
+  
 else:
   usage();
 
