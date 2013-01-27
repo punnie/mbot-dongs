@@ -1,5 +1,7 @@
 import feedparser
 import re
+import sys
+
 def strip(html):
   return re.sub('<[^<]+?>', '', html)
   
@@ -7,6 +9,7 @@ url = "http://www.priberam.pt/dlpo/DoDiaRSS.aspx"
 
 f = feedparser.parse(url)
 wotd_l = strip(f["items"][0]["summary"]).split("\n")
+wotd_l = [w.encode(sys.stdout.encoding, 'replace') for w in wotd_l]
 
 print "Palavra do dia: %s" % wotd_l[0]
 
