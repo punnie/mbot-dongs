@@ -2,6 +2,9 @@ import feedparser
 import re
 import sys
 import code
+import os
+from mylib import print_console
+
 
 L = "0,11Twitter" 
 
@@ -27,18 +30,19 @@ profile_url = url % user
 f = feedparser.parse(profile_url)
 
 if f.bozo == 1:
-  print "%s omg :( %s" % (f.bozo, f.bozo_exception)
+  print_console("%s omg :( %s" % (f.bozo, f.bozo_exception))
   exit(-1)
 
 if 'error' in f.feed.keys() or f.feed.keys() == []:
-  print "%s Twitter feed for %s is private or doesn't exist" % (L, user)
+  print_console("%s Twitter feed for %s is private or doesn't exist" % (L, user))
   exit(-1)
   
 try:
   entry = f.entries[n]
 except IndexError:
-  print "%s Tweet not available" % L
+  print_console("%s Tweet not available" % L)
   exit(-1)
   
-print "%s %s (%s)" % (L, entry.summary, entry.published.rsplit(' ', 1)[0])
+summary = entry.summary
+print_console("%s %s (%s)" % (L, summary, entry.published.rsplit(' ', 1)[0]))
 

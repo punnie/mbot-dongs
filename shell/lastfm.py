@@ -2,12 +2,13 @@ import pylast
 import sys
 import code
 import re
+from mylib import print_console
 
 def usage():
-  print(LEL + " Usage: ")
-  print("!lastfm compare <username1> <username2>")
-  print("!lastfm artistinfo|artistevents <artist name>")
-  print("!lastfm userinfo|topartists|topalbums|weeklyartists|weeklyalbums <username>")
+  print_console(LEL + " Usage: ")
+  print_console("!lastfm compare <username1> <username2>")
+  print_console("!lastfm artistinfo|artistevents <artist name>")
+  print_console("!lastfm userinfo|topartists|topalbums|weeklyartists|weeklyalbums <username>")
   exit(-1);
 
 
@@ -52,44 +53,44 @@ class LastFM:
       ui = self.api.get_user(user).get_info()
       
     except pylast.WSError as e:
-      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
     
-    print LEL + " Profile info for %s (%s, %s, %s) - Country: %s - Registered: %s - Play count: %s -- %s" % (ui['name'], ui['realname'], ui['age'], ui['gender'], ui['country'], ui['registered'], ui['playcount'], ui['url'])
+    print_console(LEL + " Profile info for %s (%s, %s, %s) - Country: %s - Registered: %s - Play count: %s -- %s" % (ui['name'], ui['realname'], ui['age'], ui['gender'], ui['country'], ui['registered'], ui['playcount'], ui['url']))
 
   def get_top_artists(self):
     try:
       artist_list = self.api.get_user(user).get_top_artists()
       
     except pylast.WSError as e:
-      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
       
     if len(artist_list) == 0:
-      print(LEL + " No artists found in %s's weekly charts :(" % user)
+      print_console(LEL + " No artists found in %s's weekly charts :(" % user)
       exit(-1)
 
     parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in artist_list[:chart_length]]
 
     chart_text = ", ".join(parsed_list);
-    print LEL + " Top %d artists for %s: %s" % (chart_length, user, chart_text)
+    print_console(LEL + " Top %d artists for %s: %s" % (chart_length, user, chart_text))
 
   def get_top_albums(self):
     try:
       album_list = self.api.get_user(user).get_top_albums()
       
     except pylast.WSError as e:
-      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
       
     if len(album_list) == 0:
-      print(LEL + " No albums found in %s's weekly charts :(" % user)
+      print_console(LEL + " No albums found in %s's weekly charts :(" % user)
       exit(-1)
 
     parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in album_list[:chart_length]]
 
     chart_text = ", ".join(parsed_list);
-    print LEL + " Top %d albums for %s: %s" % (chart_length, user, chart_text)
+    print_console(LEL + " Top %d albums for %s: %s" % (chart_length, user, chart_text))
   
   
   def get_weekly_artist_charts(self):
@@ -97,41 +98,41 @@ class LastFM:
       artist_list = self.api.get_user(user).get_weekly_artist_charts()
       
     except pylast.WSError as e:
-      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
       
     if len(artist_list) == 0:
-      print(LEL + " No artists found in %s's weekly charts :(" % user)
+      print_console(LEL + " No artists found in %s's weekly charts :(" % user)
       exit(-1)
 
     parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in artist_list[:chart_length]]
 
     chart_text = ", ".join(parsed_list);
-    print LEL + " Weekly Top %d artists for %s: %s" % (chart_length, user, chart_text)
+    print_console(LEL + " Weekly Top %d artists for %s: %s" % (chart_length, user, chart_text))
     
   def get_weekly_album_charts(self):
     try:
       album_list = self.api.get_user(user).get_weekly_album_charts()
       
     except pylast.WSError as e:
-      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
       
     if len(album_list) == 0:
-      print(LEL + " No albums found in %s's weekly charts :(" % user)
+      print_console(LEL + " No albums found in %s's weekly charts :(" % user)
       exit(-1)
 
     parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in album_list[:chart_length]]
 
     chart_text = ", ".join(parsed_list);
-    print LEL + " Weekly Top %d albums for %s: %s" % (chart_length, user, chart_text)
+    print_console(LEL + " Weekly Top %d albums for %s: %s" % (chart_length, user, chart_text))
   
   def compare_users(self):
     try:
       comparison = self.api.get_user(user).compare_with_user(user2)
       
     except pylast.WSError as e:
-      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
 
     comparison_index = round(float(comparison[0]),2)
@@ -140,7 +141,7 @@ class LastFM:
     parsed_list = [item.__str__() for item in artist_list]
 
     chart_text = ", ".join(parsed_list);
-    print LEL + " Comparison between %s and %s: Similarity Index: %.2f - Common Artists: %s" % (user, user2, comparison_index, chart_text)
+    print_console(LEL + " Comparison between %s and %s: Similarity Index: %.2f - Common Artists: %s" % (user, user2, comparison_index, chart_text))
 
   def get_artist_info(self):
     try:
@@ -163,14 +164,14 @@ class LastFM:
       similars = artist_info.get_similar()
       similars_text = ", ".join([similar.item.__str__() for similar in similars[:10]])
 
-      print LEL + " %s (%d listeners). %s" % (name, listener_count, tag_text)
-      print "Similar Artists: %s" % (similars_text)
+      print_console(LEL + " %s (%d listeners). %s" % (name, listener_count, tag_text))
+      print_console("Similar Artists: %s" % (similars_text))
       
       if bio != None:
-        print bio
+        print_console(bio)
     
     except pylast.WSError as e:
-      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
 
   def get_artist_events(self):
@@ -197,13 +198,13 @@ class LastFM:
           pass
 
       if n > 0:
-        print LEL + " events for %s:" % artist_info.get_name()
-        print events_str
+        print_console(LEL + " events for %s:" % artist_info.get_name())
+        print_console(events_str)
       else:
-        print LEL + " no events found for artist %s." % artist_info.get_name()
+        print_console(LEL + " no events found for artist %s." % artist_info.get_name())
 
     except pylast.WSError as e:
-      print(LEL + " WSError %s: %s" % (e.status,e.details))
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
   
 lastfm = LastFM()
