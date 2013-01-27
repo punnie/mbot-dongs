@@ -188,7 +188,7 @@ class LastFM:
           e_name = event.get_title()
           e_url = event.get_url()
           
-          events_str += "%s: %s - %s\n" %(e_date[:-9], e_name, e_url)
+          events_str += " - %s: %s - %s\n" %(e_date[:-9], e_name, e_url)
           n = n + 1
           
           if n >= NUM_EVENTS:
@@ -196,7 +196,11 @@ class LastFM:
         except pylast.WSError:
           pass
 
-      print events_str
+      if n > 0:
+        print LEL + " events for %s:" % artist_info.get_name()
+        print events_str
+      else:
+        print LEL + " no events found for artist %s." % artist_info.get_name()
 
     except pylast.WSError as e:
       print(LEL + " WSError %s: %s" % (e.status,e.details))
