@@ -15,7 +15,7 @@ feeds = [
   {"id":"4chS", "logo": teh4chan, "url":"http://boards.4chan.org/s/index.rss"},
   {"id":"guns", "logo": "0,1Gun Show", "url":"http://www.rsspect.com/rss/gunshowcomic.xml"},
   {"id":"qcon", "logo": "10,12QC", "url":"http://www.questionablecontent.net/QCRSS.xml"},
-  {"id":"xkcd", "logo": "1,0xkcd", "url":"http://xkcd.com/rss.xml"}ann
+  {"id":"xkcd", "logo": "1,0xkcd", "url":"http://xkcd.com/rss.xml"}
 ]
 
 
