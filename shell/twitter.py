@@ -21,14 +21,16 @@ if len(sys.argv) < 2:
 user = sys.argv[1]
 try:
   n = int(sys.argv[2])
-except IndexError, ValueError:
+except IndexError:
+  n = 0
+except ValueError:
   n = 0
 
 url = "https://api.twitter.com/1/statuses/user_timeline.rss?screen_name=%s"
 profile_url = url % user
 
 f = feedparser.parse(profile_url)
-
+code.interact(local=locals())
 if f.bozo == 1:
   print_console("%s omg :( %s" % (f.bozo, f.bozo_exception))
   exit(-1)

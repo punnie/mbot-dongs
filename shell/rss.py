@@ -5,7 +5,7 @@ import code
 import os
 from mylib import print_console, unescape
 
-teh4chan = "9,84chan"
+teh4chan = "8,34chan"
 
 feeds = [
   {"id":"pplw", "logo": "11,2PPLWARE", "url":"http://pplware.sapo.pt/feed/"},
@@ -15,7 +15,7 @@ feeds = [
   {"id":"4chS", "logo": teh4chan, "url":"http://boards.4chan.org/s/index.rss"},
   {"id":"guns", "logo": "0,1Gun Show", "url":"http://www.rsspect.com/rss/gunshowcomic.xml"},
   {"id":"qcon", "logo": "10,12QC", "url":"http://www.questionablecontent.net/QCRSS.xml"},
-  {"id":"xkcd", "logo": "1,0xkcd", "url":"http://xkcd.com/rss.xml"}
+  {"id":"xkcd", "logo": "1,0xkcd", "url":"http://xkcd.com/rss.xml"}ann
 ]
 
 
@@ -60,7 +60,7 @@ if f.bozo == 1:
 try:
   entry = f.entries[n]
 except IndexError:
-  print_console("%s Entry not available" % logo)
+  print_console("Entry not available")
   exit(-1)
 
 title = entry.title
@@ -79,5 +79,5 @@ else:
 
 for l in summary.split("\n"):
   if len(l) > 0:
-    print_console("%s" % l)
+    print_console("%s %s" % (logo, l))
 
