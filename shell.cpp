@@ -43,6 +43,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define RESPONSE_USERNOT 2
 #define RESPONSE_CHANNOT 3
 
+// ACHTUNG! CAUTION WITH THE LINE BELOW
+#define VALID_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.@"
+// CAUTION WITH THE LINE ABOVE. ACHTUNG!
+
 //The characters you want tabs replaced with.
 #define TAB_CHAR "  "
 struct command_type {
@@ -134,7 +138,7 @@ EXPORT struct Module::module_type module = {
 /////////////
 
 bool is_invalid_char(char c) {
-  char list[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _.";
+  char list[] = VALID_CHARS;
   int len = sizeof(list)/sizeof(list[1]);
   
   for (int i = 0; i < len; i++) {

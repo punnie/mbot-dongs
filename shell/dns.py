@@ -9,11 +9,14 @@ if len(sys.argv) < 3:
 t = sys.argv[1]
 p = sys.argv[2]
 
-if t == "r":
-  a = socket.gethostbyaddr(p)
-  print "rDNS lookup for %s: %s" % (p, a[0])
-elif t == "l":
-  a = socket.gethostbyname(p)
-  print "DNS lookup for %s: %s" % (p, a)
-
+try:
+  if t == "r":
+    a = socket.gethostbyaddr(p)
+    print_console("rDNS lookup for %s: %s" % (p, a[0]))
+  elif t == "l":
+    a = socket.gethostbyname(p)
+    print_console("DNS lookup for %s: %s" % (p, a))
+    
+except socket.gaierror:
+  print_console("DNS lookup for %s failed" % p) 
   
