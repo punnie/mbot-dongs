@@ -3,7 +3,7 @@ import re
 import sys
 import code
 import os
-from mylib import print_console, unescape
+from mylib import print_console, unescape, strip
 
 teh4chanLogo = "8,34chan /%s/"
 teh4chanId = "4chn"
@@ -18,8 +18,6 @@ feeds = [
   {"id":"xkcd", "logo": "1,0xkcd", "url":"http://xkcd.com/rss.xml"}
 ]
 
-def strip(html):
-  return re.sub('<[^<]+?>', '', html)
   
 # argv         0      1     2     3 
 #usage: python rss.py 4chan board n

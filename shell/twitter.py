@@ -3,13 +3,10 @@ import re
 import sys
 import code
 import os
-from mylib import print_console
+from mylib import print_console, strip
 
 
 L = "0,11Twitter" 
-
-def strip(html):
-  return re.sub('<[^<]+?>', '', html)
   
 def usage():
   print "%s Usage: !twitter username [n]" % L

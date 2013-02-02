@@ -30,3 +30,6 @@ def unescape(text):
         pass
     return text # leave as is
   return re.sub("&#?\w+;", fixup, text)
+  
+def strip(html):
+  return re.sub('<[^<]+?>', '', html)
