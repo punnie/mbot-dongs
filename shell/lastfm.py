@@ -23,7 +23,7 @@ class LastFM:
     (api_key, api_secret) = \
       ("fce0a7524bf2174e465cc2164029bf1f", "5ae9f52609c10a67d8b628f17fd69adc")
 
-    api = pylast.get_lastfm_network(api_key, api_secret)
+    api = pylast.LastFMNetwork(api_key, api_secret)
     if proxy_enabled:
       api.enable_proxy(host = proxy_host, port = proxy_port)
     
@@ -232,14 +232,32 @@ class LastFM:
   
   def get_now_playing(self, artist):
     try:
-      track = self.api.get_user(user).get_now_playing()
+      api_user = self.api.get_user(user)
+      track = api_user.get_now_playing()
       
     except pylast.WSError as e:
       print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
 
-    name = track.__str__()
-    print_console(LEL + " %s is now playing: %s" % (user, name))
+    if track is None:
+      print_console(LEL + " %s doesn't seem to be playing anything right now" % user)
+    else:
+
+      tags = track.get_top_tags()
+      track = track.get_add_info(user.__str__())
+      if track.userloved == "1":
+        loved = " 13<3"
+      else:
+        loved = ""
+      playcount = int(track.userplaycount)
+      name = track.__str__()
+      if tags != []:
+        tags = ", ".join([t.item.__str__() for t in tags[:5]])
+        s = " %s is now playing: %s (%d plays%s, %s)" % (user, name, playcount, loved, tags)
+      else:
+        s = " %s is now playing: %s" % (user, name)
+
+      print_console(LEL + s)
 
   def set_user(self, nick, user):
 
