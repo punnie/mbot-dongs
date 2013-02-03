@@ -20,34 +20,60 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "mbot.h"
 
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include "easycurl/easycurl.h"
+
 #define SOURCE s->script.source
 #define DEST s->script.dest
 #define SEND_TEXT s->script.send_text
 
 #define MAX_URL_LENGTH 1024
 #define MAX_URL_DETECT 3
+#define TIME_BUFFER_SIZE 80
 
 struct sniffing_channel_type {
   String* channel;
   bool tellall; // sniff all links or just text/html
   bool tellfail; // message on fail?
-  
-  sniffing_channel_type(String* s, bool th, bool tf) : 
+  bool tellold; // tell if the url was already seen by the channel
+
+  sniffing_channel_type(String* s, bool th, bool tf, bool to) : 
     channel (s), 
     tellall (th),
-    tellfail (tf) {}
+    tellfail (tf),
+    tellold (to) {}
     
   ~sniffing_channel_type() {
     delete channel;
   }
 };
 
+/* For telling on old urls */
+struct url_type {
+  string url;
+  string channel;
+  string nick;
+  time_t timestamp;
+  
+  url_type(string u, string c, string n) :
+    url (u), channel(c), nick(n), timestamp(time(0))
+    { }
+};
+
 struct urlsniffer_type {
   NetServer *s;
   List* channels;
+  vector<url_type> urls_seen;
+
   bool sniffing_channel(c_char channel);
   bool telling_fail_on_channel(c_char channel);
   bool telling_all_on_channel(c_char channel);
+  bool telling_old_on_channel(c_char channel);
+  time_t how_old_url(string url, string channel, string newnick, string& orignick);
+
   urlsniffer_type (NetServer *server) : 
     s (server) {}
   
@@ -56,17 +82,12 @@ struct urlsniffer_type {
   }
 };
 
+
 List * urlsniffer_list;
 
 ///////////////
 // Utils
 ///////////////
-
-
-#include <iostream>
-#include <string>
-#include <sstream>
-#include "easycurl/easycurl.h"
 
 
 char* ircstrip(char* src, char* dst) {
@@ -118,7 +139,6 @@ int geturls (char* src, char dst[][MSG_SIZE]) {
   }
   return count;
 }
-
 
 ///////////////
 // prototypes
@@ -181,6 +201,39 @@ bool urlsniffer_type::telling_all_on_channel(c_char channel) {
   return false;
 }
 
+bool urlsniffer_type::telling_old_on_channel(c_char channel) {
+  
+  sniffing_channel_type *s;
+  this->channels->rewind ();
+  while ((s = (sniffing_channel_type *)this->channels->next()) != NULL)
+  {
+    if (*(s->channel) == channel)
+      return s->tellold;
+  }
+  return false;
+}
+
+time_t urlsniffer_type::how_old_url(string url, string channel, string newnick, string& orignick) {
+  time_t now = time(0);
+  bool found = false;
+  for (vector<url_type>::iterator it = this->urls_seen.begin() ; it != urls_seen.end(); ++it) {
+
+    //cout << "d: " << it->url << ", " << it->nick << ", " << it->timestamp << ", " << url << ", " << channel << endl;
+
+    if (it->url == url && it->channel == channel) {
+      found = true;
+      orignick = string(it->nick);
+      return now - it->timestamp;
+    }
+  }
+  
+  if (!found) {
+    url_type url_t(url, channel, newnick);
+    this->urls_seen.push_back(url_t);
+  }
+  return (time_t)0;
+}
+
 /////////////
 // commands
 /////////////
@@ -230,12 +283,66 @@ urlsniffer_event (NetServer *s)
       haschecked = false;
       continue;
     }
+
+    ostringstream oss;
+    string url = buff[i];
+    string nick = SOURCE;
+    string channel(CMD[2]);
     
-    std::ostringstream oss;
-    std::string url = buff[i];
-    std::string nick = SOURCE;
+    //telling on old urls?
+    string orignick;
+    time_t age;
+    
+    bool tell_old = urlsniffer->telling_old_on_channel(CMD[2]);
+    if (tell_old) {
+      age = urlsniffer->how_old_url(url, channel, nick, orignick); 
+
+      if (age > 0) {
+        char buffer[TIME_BUFFER_SIZE];
+        
+        int days = age / 60 / 60 / 24;
+        int hours = (age / 60 / 60) % 24;
+        int minutes = (age / 60) % 60;
+
+        char pl_days[2] = {0};
+        if (days != 1)
+          strcpy(pl_days, "s");
+        char pl_hours[2] = {0};
+        if (hours != 1)
+          strcpy(pl_hours, "s");
+        char pl_minutes[2] = {0};
+        if (days != 1)
+          strcpy(pl_hours, "s");
+        
+        if (days == 0 && hours == 0) {
+          if (minutes == 0) {
+            snprintf(buffer, TIME_BUFFER_SIZE, "just now", minutes, pl_minutes);
+          } else {
+            snprintf(buffer, TIME_BUFFER_SIZE, "%d minute%s ago", minutes, pl_minutes);
+          }
+        } else if (days == 0) {
+          if (minutes > 0) {
+            snprintf(buffer, TIME_BUFFER_SIZE, "%d hour%s, %d minute%s ago", hours, pl_hours, minutes, pl_minutes);
+          } else {
+            snprintf(buffer, TIME_BUFFER_SIZE, "%d hour%s ago", hours, pl_hours);
+          }
+        } else {
+          if (hours > 0) {
+            snprintf(buffer, TIME_BUFFER_SIZE, "%d day%s, %d hour%s ago", days, pl_days, hours, pl_hours);
+          } else {
+            snprintf(buffer, TIME_BUFFER_SIZE, "%d day%s ago", days, pl_days);
+          }
+        }
+        
+        SEND_TEXT(DEST, "BAH! %s's link is OLD! (shown %s by %s)", nick.c_str(), buffer, orignick.c_str());
+        continue;
+      }
+    }
+    
+    //prevent highlights
+    nick.insert(1, "0");
+    
     EasyCurl e(url);
-    
     if (e.requestWentOk == 1) {
        if (e.isHtml) {
          oss << nick << "'s link title: " << e.html_title << " (";
@@ -290,8 +397,8 @@ static void
 urlsniffer_conf (NetServer *s, c_char bufread)
 {
 
-  char buf[4][MSG_SIZE+1];
-  strsplit (bufread, buf, 3);
+  char buf[5][MSG_SIZE+1];
+  strsplit (bufread, buf, 4);
  
   if (strcasecmp (buf[0], "urlsniffer") != 0)
     return;
@@ -310,7 +417,8 @@ urlsniffer_conf (NetServer *s, c_char bufread)
   urlsniffer->channels->add ((void *) new sniffing_channel_type(
     new String(buf[1], CHANNEL_SIZE),
     (strncmp(buf[2], "tellall", 7) == 0),
-    (strncmp(buf[3], "tellfail", 8) == 0)
+    (strncmp(buf[3], "tellfail", 8) == 0),
+    (strncmp(buf[4], "tellold", 7) == 0)
   ));
 }
 
@@ -323,7 +431,6 @@ urlsniffer_stop (void)
   urlsniffer_list->rewind ();
   while ((urlsniffer = (urlsniffer_type *)urlsniffer_list->next ()) != NULL) {  
     urlsniffer->s->script.events.del ((void *)urlsniffer_event);
-    
     urlsniffer->channels->rewind();
     while ((channel = (sniffing_channel_type*)urlsniffer->channels->next ()) != NULL) {
       delete channel;

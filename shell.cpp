@@ -189,9 +189,14 @@ command_type* trigger2command(char* trigger, List* command_list) {
   command_type *command;
   command_list->rewind ();
   
-  while ((command = (command_type *)command_list->next ()) != NULL) { 
-    if (*(command->trigger) == trigger) {      
+  while ((command = (command_type *)command_list->next ()) != NULL) {
+    String* trigger_lc = new String(trigger, TRIGGER_SIZE);
+    trigger_lc->lower();
+    if (*(command->trigger) == *trigger_lc) {
+      delete trigger_lc;
       return command;
+    } else {
+      delete trigger_lc;
     }
   }
   return NULL;
@@ -214,15 +219,7 @@ shell_cmd (NetServer *s)
 
   command_type* command = trigger2command(BUF[0], shell->commands);
   
-  bool isChannel = (CMD[2][0] == '#') || ((CMD[2][0] == '@') && (CMD[2][1] == '#'));
-  if ((isChannel && command->cmd_type == 1) || (!isChannel && command->cmd_type == 0)) {
-    if (command->cmd_type == 0) {
-      SEND_TEXT (DEST, "This command is only available in channels.");
-    } else {
-      SEND_TEXT (DEST, "This command is only available in private.");
-    }
-    return;
-  }
+
   
   if (command == NULL) {
   
@@ -230,6 +227,16 @@ shell_cmd (NetServer *s)
     
   } else {
     
+    bool isChannel = (CMD[2][0] == '#') || ((CMD[2][0] == '@') && (CMD[2][1] == '#'));
+    if ((isChannel && command->cmd_type == 1) || (!isChannel && command->cmd_type == 0)) {
+      if (command->cmd_type == 0) {
+        SEND_TEXT (DEST, "This command is only available in channels.");
+      } else {
+        SEND_TEXT (DEST, "This command is only available in private.");
+      }
+      return;
+    }
+  
     char cmdline[COMMAND_SIZE];
     if (!parse_command(cmdline, command, CMD[0], BUF[1])) {
       SEND_TEXT(DEST, cmdline); //in this case cmdline will contain an error msg
