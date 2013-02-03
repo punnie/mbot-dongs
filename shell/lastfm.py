@@ -2,53 +2,76 @@ import pylast
 import sys
 import code
 import re
+import pickle
 from mylib import print_console
-
-def usage():
-  print_console(LEL + " Usage: ")
-  print_console("!lastfm compare <username1> <username2>")
-  print_console("!lastfm artistinfo|artistevents <artist name>")
-  print_console("!lastfm userinfo|topartists|topalbums|weeklyartists|weeklyalbums <username>")
-  exit(-1);
-
 
 LEL = "0,5last.fm"
 NUM_EVENTS = 5
+USERFILE = 'lastfm.users'
+CHART_LENGTH = 10
 
-if len(sys.argv) < 3:
-  usage();
-  
-chart_length = 10
-query = sys.argv[1]
+def man():
+  print_console(LEL + " available commands:")
+  print_console(".np [username] | .setuser <username> | .compare [username] <username2>")
+  print_console("!lastfm artistinfo|artistevents <artist name>")
+  print_console("!lastfm userinfo|topartists|topalbums|weeklyartists|weeklyalbums [username]")
+  exit(-1);
 
-user = sys.argv[2]
-  
-if query == "compare":
-  if len(sys.argv) < 4:
-    usage();
-  else:
-    user2 = sys.argv[3]
-
-  
-if query == "artistinfo" or query == "artistevents":
-  if len(sys.argv) < 3:
-    usage();
-  else:
-    artist = " ".join(sys.argv[2:])
-  
-  
-(api_key, api_secret) = \
-  ("fce0a7524bf2174e465cc2164029bf1f", "5ae9f52609c10a67d8b628f17fd69adc")
-    
 class LastFM:
+
   def __init__(self, proxy_host = None, proxy_port = None, proxy_enabled = False):
+    (api_key, api_secret) = \
+      ("fce0a7524bf2174e465cc2164029bf1f", "5ae9f52609c10a67d8b628f17fd69adc")
+
     api = pylast.get_lastfm_network(api_key, api_secret)
     if proxy_enabled:
       api.enable_proxy(host = proxy_host, port = proxy_port)
     
     self.api = api
+    self.known_users = {}
   
-  def get_user_info(self):
+  def save_user(self, nick, user):
+    self.known_users[nick] = user
+    try:  
+      f = open(USERFILE, "w+")
+      pickle.dump(self.known_users, f)
+      f.close()
+
+    except Exception as e:
+      print e
+      return False
+    
+    return True
+    
+      
+  def load_users(self):
+    try:
+      f = open(USERFILE, "rb")
+      self.known_users = pickle.load(f)
+      f.close()
+      
+    except IOError as e:
+      if e.errno == 2:
+        return True # ignore if file doesn't exist.
+      return False
+      
+    return True
+  
+  def get_user_by_nick(self, nick):
+    self.load_users()
+    try:
+      user = self.known_users[nick]
+    except KeyError:
+      user = None
+    
+    return user
+  
+  #
+  #
+  #
+  ####
+
+  def get_user_info(self, user):
     try:
       ui = self.api.get_user(user).get_info()
       
@@ -58,7 +81,7 @@ class LastFM:
     
     print_console(LEL + " Profile info for %s (%s, %s, %s) - Country: %s - Registered: %s - Play count: %s -- %s" % (ui['name'], ui['realname'], ui['age'], ui['gender'], ui['country'], ui['registered'], ui['playcount'], ui['url']))
 
-  def get_top_artists(self):
+  def get_top_artists(self, user):
     try:
       artist_list = self.api.get_user(user).get_top_artists()
       
@@ -70,12 +93,12 @@ class LastFM:
       print_console(LEL + " No artists found in %s's weekly charts :(" % user)
       exit(-1)
 
-    parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in artist_list[:chart_length]]
+    parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in artist_list[:CHART_LENGTH]]
 
     chart_text = ", ".join(parsed_list);
-    print_console(LEL + " Top %d artists for %s: %s" % (chart_length, user, chart_text))
+    print_console(LEL + " Top %d artists for %s: %s" % (CHART_LENGTH, user, chart_text))
 
-  def get_top_albums(self):
+  def get_top_albums(self, user):
     try:
       album_list = self.api.get_user(user).get_top_albums()
       
@@ -87,13 +110,13 @@ class LastFM:
       print_console(LEL + " No albums found in %s's weekly charts :(" % user)
       exit(-1)
 
-    parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in album_list[:chart_length]]
+    parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in album_list[:CHART_LENGTH]]
 
     chart_text = ", ".join(parsed_list);
-    print_console(LEL + " Top %d albums for %s: %s" % (chart_length, user, chart_text))
+    print_console(LEL + " Top %d albums for %s: %s" % (CHART_LENGTH, user, chart_text))
   
   
-  def get_weekly_artist_charts(self):
+  def get_weekly_artist_charts(self, user):
     try:
       artist_list = self.api.get_user(user).get_weekly_artist_charts()
       
@@ -105,12 +128,12 @@ class LastFM:
       print_console(LEL + " No artists found in %s's weekly charts :(" % user)
       exit(-1)
 
-    parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in artist_list[:chart_length]]
+    parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in artist_list[:CHART_LENGTH]]
 
     chart_text = ", ".join(parsed_list);
-    print_console(LEL + " Weekly Top %d artists for %s: %s" % (chart_length, user, chart_text))
+    print_console(LEL + " Weekly Top %d artists for %s: %s" % (CHART_LENGTH, user, chart_text))
     
-  def get_weekly_album_charts(self):
+  def get_weekly_album_charts(self, user):
     try:
       album_list = self.api.get_user(user).get_weekly_album_charts()
       
@@ -122,12 +145,12 @@ class LastFM:
       print_console(LEL + " No albums found in %s's weekly charts :(" % user)
       exit(-1)
 
-    parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in album_list[:chart_length]]
+    parsed_list = ["" + i.item.__str__() + " (" + str(i.weight) + ")" for i in album_list[:CHART_LENGTH]]
 
     chart_text = ", ".join(parsed_list);
-    print_console(LEL + " Weekly Top %d albums for %s: %s" % (chart_length, user, chart_text))
+    print_console(LEL + " Weekly Top %d albums for %s: %s" % (CHART_LENGTH, user, chart_text))
   
-  def compare_users(self):
+  def compare_users(self, user, user2):
     try:
       comparison = self.api.get_user(user).compare_with_user(user2)
       
@@ -135,15 +158,15 @@ class LastFM:
       print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
 
-    comparison_index = round(float(comparison[0]),2)
+    comparison_index = round(float(comparison[0]),2)*100
     artist_list = comparison[1]
 
     parsed_list = [item.__str__() for item in artist_list]
 
     chart_text = ", ".join(parsed_list);
-    print_console(LEL + " Comparison between %s and %s: Similarity Index: %.2f - Common Artists: %s" % (user, user2, comparison_index, chart_text))
+    print_console(LEL + " Comparison between %s and %s: Similarity: %d%% - Common Artists: %s" % (user, user2, comparison_index, chart_text))
 
-  def get_artist_info(self):
+  def get_artist_info(self, artist):
     try:
       artist_info = self.api.get_artist(artist)
 
@@ -174,7 +197,7 @@ class LastFM:
       print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
 
-  def get_artist_events(self):
+  def get_artist_events(self, artist):
     try:
       artist_info = self.api.get_artist(artist)
       artist_events = artist_info.get_upcoming_events()
@@ -207,27 +230,114 @@ class LastFM:
       print_console(LEL + " WSError %s: %s" % (e.status,e.details))
       exit(-1)
   
+  def get_now_playing(self, artist):
+    try:
+      track = self.api.get_user(user).get_now_playing()
+      
+    except pylast.WSError as e:
+      print_console(LEL + " WSError %s: %s" % (e.status,e.details))
+      exit(-1)
+
+    name = track.__str__()
+    print_console(LEL + " %s is now playing: %s" % (user, name))
+
+  def set_user(self, nick, user):
+
+    if self.load_users() == True and self.save_user(nick, user) == True:
+      print_console(LEL + " %s's username is set to %s" % (nick, user))
+    else:
+      print_console(LEL + " could not set %s's username to %s" % (nick, user))
+
+ 
 lastfm = LastFM()
 
-if query == "weeklyartists":
-  LastFM().get_weekly_artist_charts()
-elif query == "weeklyalbums":
-  LastFM().get_weekly_album_charts()
-elif query == "topalbums":
-  LastFM().get_top_albums()
-elif query == "topartists":
-  LastFM().get_top_artists()
-elif query == "userinfo":
-  LastFM().get_user_info()
-elif query == "compare":
-  LastFM().compare_users()
-elif query == "artistinfo":
-  LastFM().get_artist_info()
-elif query == "artistevents":
-  LastFM().get_artist_events()  
   
+if len(sys.argv) < 3:
+  man()
+
+  
+
+mask = sys.argv[1]
+nick = mask.split("!")[0]
+query = sys.argv[2]
+
+if query == "compare":
+
+  if len(sys.argv) < 4:
+    print_console(LEL + " First set your username with .setuser. Alternatively use .compare <username1> <username2>")
+    exit(-1)
+
+  elif len(sys.argv) < 5:
+    user = lastfm.get_user_by_nick(nick)
+    user2 = sys.argv[3]
+    
+    if user == None:
+      print_console(LEL + " First set your username with .setuser. Alternatively use .compare <username1> <username2>")
+      exit(-1)
+      
+  else:
+    user = sys.argv[3]
+    user2 = sys.argv[4]
+
+  
+if query in ("artistinfo", "artistevents"):
+  if len(sys.argv) < 4:
+    print_console(LEL + " !lastfm artistinfo|artistevents <artist name>")
+    exit(-1)
+  else:
+    artist = " ".join(sys.argv[3:])
+
+if query == "nowplaying":
+  if len(sys.argv) < 4:
+    user = lastfm.get_user_by_nick(nick)
+    if user == None:
+      print_console(LEL + " First set your username with .setuser. Alternatively use .np <username>")
+      exit(-1)
+      
+  else:
+    user = sys.argv[3]
+    
+if query in ("weeklyartists", "weeklyalbums", "topartists", "topalbums", "userinfo"):
+  if len(sys.argv) < 4:
+    user = lastfm.get_user_by_nick(nick)
+    if user == None:
+      print_console(LEL + " First set your username with .setuser. Alternatively use !lastfm %s <username>" % query)
+      exit(-1)
+      
+  else:
+    user = sys.argv[3]
+    
+# will be called as lastfm.py setuser {mask} {usernme}
+if query == "setuser":
+  if len(sys.argv) < 4:
+    print_console(LEL + " .setuser <username>")
+    exit(-1)
+  else:
+    user = sys.argv[3]
+
+
+if query == "weeklyartists":
+  LastFM().get_weekly_artist_charts(user)
+elif query == "weeklyalbums":
+  LastFM().get_weekly_album_charts(user)
+elif query == "topalbums":
+  LastFM().get_top_albums(user)
+elif query == "topartists":
+  LastFM().get_top_artists(user)
+elif query == "userinfo":
+  LastFM().get_user_info(user)
+elif query == "compare":
+  LastFM().compare_users(user, user2)
+elif query == "artistinfo":
+  LastFM().get_artist_info(artist)
+elif query == "artistevents":
+  LastFM().get_artist_events(artist)  
+elif query == "nowplaying":
+  LastFM().get_now_playing(user)
+elif query == "setuser":
+  LastFM().set_user(nick, user)
 else:
-  usage();
+  man();
 
   
 

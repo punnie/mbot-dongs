@@ -44,7 +44,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define RESPONSE_CHANNOT 3
 
 // ACHTUNG! CAUTION WITH THE LINE BELOW
-#define VALID_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.@"
+#define VALID_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.@!"
 // CAUTION WITH THE LINE ABOVE. ACHTUNG!
 
 //The characters you want tabs replaced with.
@@ -161,16 +161,18 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
 //builds the shell command based on user input
 //if the return value is false, buffer contains
 //an error message
-bool parse_command(char* buffer, command_type* command, char* params) {
+bool parse_command(char* buffer, command_type* command, char* mask, char* params) {
 
-  string params_s(params), command_s(command->command->getstr());
+  string mask_s(mask), params_s(params), command_s(command->command->getstr());
 
   //Remove almost everything from PARAMS
   
   // the line below is quite important
+  mask_s.erase(remove_if(mask_s.begin(), mask_s.end(), is_invalid_char), mask_s.end());
   params_s.erase(remove_if(params_s.begin(), params_s.end(), is_invalid_char), params_s.end());
   // the line above is quite important
 
+  replace(command_s, "{n}", mask_s);
   replace(command_s, "{}", params_s);
 
   strncpy(buffer, command_s.c_str(), COMMAND_SIZE);
@@ -183,7 +185,7 @@ command_type* trigger2command(char* trigger, List* command_list) {
   command_type *command;
   command_list->rewind ();
   
-  while ((command = (command_type *)command_list->next ()) != NULL) {
+  while ((command = (command_type *)command_list->next ()) != NULL) { 
     if (*(command->trigger) == trigger) {      
       return command;
     }
@@ -196,6 +198,7 @@ static void
 shell_cmd (NetServer *s)
 {
 
+  char nick[NICK_SIZE];
   shell_type *shell = server2shell (s);
 
   if (shell == NULL) {
@@ -212,20 +215,17 @@ shell_cmd (NetServer *s)
     SEND_TEXT (DEST, "Failed retrieving :(");  
     
   } else {
-  
     
     char cmdline[COMMAND_SIZE];
-    if (!parse_command(cmdline, command, BUF[1])) {
-      SEND_TEXT(DEST, cmdline);
+    if (!parse_command(cmdline, command, CMD[0], BUF[1])) {
+      SEND_TEXT(DEST, cmdline); //in this case cmdline will contain an error msg
     }
-    
-    //debug
-    //cout << "Command: " << cmdline << endl;
+
         
     int lines_sent = 0;
     char buffer[RESULT_LINE_SIZE];
     FILE* p;
-  
+
     if ((p = popen(cmdline, "r")) == NULL) {
     
       SEND_TEXT(DEST, "OMG HELP SOMETHING IS WRONG WITH 13%s", BUF[0]);
