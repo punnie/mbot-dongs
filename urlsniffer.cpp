@@ -296,8 +296,8 @@ urlsniffer_event (NetServer *s)
     bool tell_old = urlsniffer->telling_old_on_channel(CMD[2]);
     if (tell_old) {
       age = urlsniffer->how_old_url(url, channel, nick, orignick); 
-
-      if (age > 0) {
+      tell_old =  nick != orignick; //don't tell on original link poster 
+      if (age > 0 && tell_old) {
         char buffer[TIME_BUFFER_SIZE];
         
         int days = age / 60 / 60 / 24;
