@@ -245,12 +245,19 @@ class LastFM:
 
       tags = track.get_top_tags()
       track = track.get_add_info(user.__str__())
+      
       if track.userloved == "1":
         loved = " 13<3"
       else:
         loved = ""
-      playcount = int(track.userplaycount)
+      
+      try:
+        playcount = int(track.userplaycount)
+      except ValueError:
+        playcount = 1
+      
       name = track.__str__()
+      
       if tags != []:
         tags = ", ".join([t.item.__str__() for t in tags[:5]])
         s = " %s is now playing: %s (%d plays%s, %s)" % (user, name, playcount, loved, tags)

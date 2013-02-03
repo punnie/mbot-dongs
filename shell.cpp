@@ -43,22 +43,26 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define RESPONSE_USERNOT 2
 #define RESPONSE_CHANNOT 3
 
-// ACHTUNG! CAUTION WITH THE LINE BELOW
+// /!\ ACHTUNG! CAUTION WITH THE LINE BELOW /!\
+// /!\ INCLUDING CERTAIN CHARACTERS HERE WILL ALLOW /!\
+// /!\ ARBITRARY SHELL COMMANDS TO BE EXECUTED /!\ 
+
 #define VALID_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.@!"
-// CAUTION WITH THE LINE ABOVE. ACHTUNG!
+
+// /!\ CAUTION WITH THE LINE ABOVE. ACHTUNG! /!\ 
 
 //The characters you want tabs replaced with.
 #define TAB_CHAR "  "
 struct command_type {
   String* trigger;  // trigger
   int user_level;    // level required to run command
-  int respond_with;  // response type, should change to an enum type TODO
+  int cmd_type;  // command type (0=channel, 1=pvt, 2=both)
   String* command;  // shell command
   
-  command_type(String* t, int ul, int rw, String* c) : 
+  command_type(String* t, int ul, int ct, String* c) : 
     trigger (t),
     user_level (ul),
-    respond_with (rw),
+    cmd_type (ct),
     command (c) {}
     
   ~command_type() {
@@ -210,6 +214,16 @@ shell_cmd (NetServer *s)
 
   command_type* command = trigger2command(BUF[0], shell->commands);
   
+  bool isChannel = (CMD[2][0] == '#') || ((CMD[2][0] == '@') && (CMD[2][1] == '#'));
+  if ((isChannel && command->cmd_type == 1) || (!isChannel && command->cmd_type == 0)) {
+    if (command->cmd_type == 0) {
+      SEND_TEXT (DEST, "This command is only available in channels.");
+    } else {
+      SEND_TEXT (DEST, "This command is only available in private.");
+    }
+    return;
+  }
+  
   if (command == NULL) {
   
     SEND_TEXT (DEST, "Failed retrieving :(");  
@@ -322,17 +336,17 @@ shell_conf (NetServer *s, c_char bufread)
 
   // Create a new command_type instance
   // 0     1        2          3           4
-  // SHELL !trigger <response> <userlevel> <shell command>
+  // SHELL !trigger <cmdtype> <userlevel> <shell command>
   String *n_trigger = new String(buf[1], TRIGGER_SIZE);
   int n_cmdlevel = atoi(buf[3]);
-  int n_msgtype = atoi(buf[2]);
+  int n_cmdtype = atoi(buf[2]);
   String *n_command = new String(buf[4], COMMAND_SIZE);
 
   shell->commands->add(
     (void*) new command_type(
        n_trigger,
        n_cmdlevel,
-       n_msgtype,
+       n_cmdtype,
        n_command
     )
   );
