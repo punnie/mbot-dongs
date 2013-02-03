@@ -255,7 +255,7 @@ class LastFM:
         tags = ", ".join([t.item.__str__() for t in tags[:5]])
         s = " %s is now playing: %s (%d plays%s, %s)" % (user, name, playcount, loved, tags)
       else:
-        s = " %s is now playing: %s" % (user, name)
+        s = " %s is now playing: %s (%d plays%s)" % (user, name, playcount, loved)
 
       print_console(LEL + s)
 
