@@ -178,7 +178,7 @@ bool parse_command(char* buffer, command_type* command, char* mask, char* params
   // the lines below are quite important, for security purposes
   mask_s.erase(remove_if(mask_s.begin(), mask_s.end(), is_invalid_char), mask_s.end());
   params_s.erase(remove_if(params_s.begin(), params_s.end(), is_invalid_char), params_s.end());
-  
+   
   // quote everything!
   
   mask_s = "'" + mask_s + "'";
@@ -258,7 +258,6 @@ shell_cmd (NetServer *s)
       SEND_TEXT(DEST, cmdline); //in this case cmdline will contain an error msg
     }
 
-    cout << endl << " xec: " << cmdline << endl;
     int lines_sent = 0;
     char buffer[RESULT_LINE_SIZE];
     FILE* p;

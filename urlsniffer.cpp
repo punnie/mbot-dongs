@@ -270,9 +270,7 @@ int urlsniffer_type::load_urls_from_file() {
       f >> url;
       
       if (!f.eof()) {
-        //cout << timestamp << "," << nick << "," << channel <<  "," << url << "," << endl;
         url_type url_t(url, channel, nick, timestamp);
-        url_t.print();
         this->urls_seen.push_back(url_t);
         i++;
       }
@@ -287,8 +285,6 @@ time_t urlsniffer_type::how_old_url(string url, string channel, string newnick, 
   time_t now = time(0);
   bool found = false;
   for (vector<url_type>::iterator it = this->urls_seen.begin() ; it != urls_seen.end(); ++it) {
-
-    //cout << "d: " << it->url << ", " << it->nick << ", " << it->timestamp << ", " << url << ", " << channel << endl;
 
     if (it->url == url && it->channel == channel) {
       found = true;
