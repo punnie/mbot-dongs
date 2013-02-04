@@ -2374,7 +2374,7 @@ class Track(_BaseObject, _Taggable):
         return self
 
     #####################################################################
-    # Now it does :)xml
+    # Now it does :)
     #####################################################################
     
     def get_title(self, properly_capitalized=False):
@@ -3247,6 +3247,34 @@ class User(_BaseObject):
         params["message"] = message
         
         self._request("user.Shout", False, params)
+
+    #####################################################################
+    # This library doesn't allow you to call user.getInfo
+    #####################################################################
+
+    def get_info(self):
+        info = {}
+
+        doc = self._request("user.getInfo", True)
+        info[u"id"] = _extract(doc, "id")
+        info[u"name"] = _extract(doc, "name")
+        info[u"realname"] = _extract(doc, "realname")
+        info[u"url"] = _extract(doc, "url")
+        info[u"image"] = _extract(doc, "image")
+        info[u"country"] = _extract(doc, "country")
+        info[u"age"] = _extract(doc, "age")
+        info[u"gender"] = _extract(doc, "gender")
+        info[u"subscriber"] = _extract(doc, "subscriber")
+        info[u"playcount"] = _extract(doc, "playcount")
+        info[u"playlists"] = _extract(doc, "playlists")
+        info[u"bootstrap"] = _extract(doc, "bootstrap")
+        info[u"registered"] = _extract(doc, "registered")
+
+        return info
+
+    #####################################################################
+    # Now it does :)
+    #####################################################################
 
 class AuthenticatedUser(User):
     def __init__(self, network):

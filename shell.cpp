@@ -162,23 +162,39 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
     return true;
 }
 
-//builds the shell command based on user input
-//if the return value is false, buffer contains
-//an error message
+// builds the shell command based on user input
+// if the return value is false, buffer contains
+// an error message
+
+// this method prevents command injection via shell processing
+// by restricting the set of characters allowed in (specified in 
+// VALID_CHARS) and by quoting each separate argument with a '
 bool parse_command(char* buffer, command_type* command, char* mask, char* params) {
 
-  string mask_s(mask), params_s(params), command_s(command->command->getstr());
+  string mask_s(mask), params_s(params), params_s2 = "", command_s(command->command->getstr());
 
   //Remove almost everything from PARAMS
   
-  // the line below is quite important
+  // the lines below are quite important, for security purposes
   mask_s.erase(remove_if(mask_s.begin(), mask_s.end(), is_invalid_char), mask_s.end());
   params_s.erase(remove_if(params_s.begin(), params_s.end(), is_invalid_char), params_s.end());
-  // the line above is quite important
+  
+  // quote everything!
+  
+  mask_s = "'" + mask_s + "'";
+  
+  istringstream iss(params_s);
+  string token, result;
 
+  while (iss >> token) {
+    token = "'" + token + "'";
+    result += token + " ";
+  }
+  params_s = result.substr(0, result.size()-1);
+  
   replace(command_s, "{n}", mask_s);
   replace(command_s, "{}", params_s);
-
+  
   strncpy(buffer, command_s.c_str(), COMMAND_SIZE);
   
   return true;
@@ -242,7 +258,7 @@ shell_cmd (NetServer *s)
       SEND_TEXT(DEST, cmdline); //in this case cmdline will contain an error msg
     }
 
-        
+    cout << endl << " xec: " << cmdline << endl;
     int lines_sent = 0;
     char buffer[RESULT_LINE_SIZE];
     FILE* p;

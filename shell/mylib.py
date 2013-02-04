@@ -8,7 +8,11 @@ if encoding is None:
   encoding = sys.getfilesystemencoding()
 
 def print_console(*args):
-  print u' '.join(args).encode(encoding, 'replace')
+  try:
+    print u' '.join(args).encode(encoding, 'replace')
+  except UnicodeDecodeError:
+    print ' '.join(args)
+    
   
 def unescape(text):
   def fixup(m):

@@ -42,8 +42,7 @@ class LastFM:
       return False
     
     return True
-    
-      
+
   def load_users(self):
     try:
       f = open(USERFILE, "rb")
@@ -56,7 +55,7 @@ class LastFM:
       return False
       
     return True
-  
+
   def get_user_by_nick(self, nick):
     self.load_users()
     try:
@@ -65,11 +64,7 @@ class LastFM:
       user = None
     
     return user
-  
-  #
-  #
-  #
-  ####
+
 
   def get_user_info(self, user):
     try:
@@ -253,7 +248,7 @@ class LastFM:
       
       try:
         playcount = int(track.userplaycount)
-      except ValueError:
+      except (ValueError, TypeError):
         playcount = 1
       
       name = track.__str__()
